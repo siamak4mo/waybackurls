@@ -14,6 +14,12 @@ import (
 	"time"
 )
 
+// fetch config
+type fconf struct {
+	proxyAddr *url.URL
+	useProxy  bool
+	noSubs    bool
+}
 func main() {
 
 	var domains []string
@@ -49,7 +55,7 @@ func main() {
 	if getVersionsFlag {
 
 		for _, u := range domains {
-			versions, err := getVersions(u)
+			versions, err := getVersions(u, cfg)
 			if err != nil {
 				continue
 			}
@@ -75,7 +81,7 @@ func main() {
 			fetch := fn
 			go func() {
 				defer wg.Done()
-				resp, err := fetch(domain, noSubs)
+				resp, err := fetch(domain, cfg)
 				if err != nil {
 					return
 				}
@@ -122,11 +128,11 @@ type wurl struct {
 	url  string
 }
 
-type fetchFn func(string, bool) ([]wurl, error)
+type fetchFn func(string, fconf) ([]wurl, error)
 
-func getWaybackURLs(domain string, noSubs bool) ([]wurl, error) {
+func getWaybackURLs(domain string, cfg fconf) ([]wurl, error) {
 	subsWildcard := "*."
-	if noSubs {
+	if cfg.noSubs {
 		subsWildcard = ""
 	}
 
@@ -164,9 +170,9 @@ func getWaybackURLs(domain string, noSubs bool) ([]wurl, error) {
 
 }
 
-func getCommonCrawlURLs(domain string, noSubs bool) ([]wurl, error) {
+func getCommonCrawlURLs(domain string, cfg fconf) ([]wurl, error) {
 	subsWildcard := "*."
-	if noSubs {
+	if cfg.noSubs {
 		subsWildcard = ""
 	}
 
@@ -201,7 +207,7 @@ func getCommonCrawlURLs(domain string, noSubs bool) ([]wurl, error) {
 
 }
 
-func getVirusTotalURLs(domain string, noSubs bool) ([]wurl, error) {
+func getVirusTotalURLs(domain string, cfg fconf) ([]wurl, error) {
 	out := make([]wurl, 0)
 
 	apiKey := os.Getenv("VT_API_KEY")
@@ -254,7 +260,7 @@ func isSubdomain(rawUrl, domain string) bool {
 	return strings.ToLower(u.Hostname()) != strings.ToLower(domain)
 }
 
-func getVersions(u string) ([]string, error) {
+func getVersions(u string, cfg fconf) ([]string, error) {
 	out := make([]string, 0)
 
 	resp, err := http.Get(fmt.Sprintf(
