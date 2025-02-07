@@ -20,6 +20,24 @@ type fconf struct {
 	useProxy  bool
 	noSubs    bool
 }
+
+func (cfg fconf) mk_http_client() *http.Client {
+	var client *http.Client
+
+	if cfg.useProxy {
+		transport := &http.Transport{
+			Proxy: http.ProxyURL(cfg.proxyAddr),
+		}
+		client = &http.Client{
+			Transport: transport,
+		}
+	} else {
+		client = http.DefaultClient
+	}
+
+	return client
+}
+
 func main() {
 
 	var domains []string
@@ -165,7 +183,7 @@ func getWaybackURLs(domain string, cfg fconf) ([]wurl, error) {
 		subsWildcard = ""
 	}
 
-	res, err := http.Get(
+	res, err := cfg.mk_http_client().Get(
 		fmt.Sprintf("http://web.archive.org/cdx/search/cdx?url=%s%s/*&output=json&collapse=urlkey", subsWildcard, domain),
 	)
 	if err != nil {
@@ -205,7 +223,7 @@ func getCommonCrawlURLs(domain string, cfg fconf) ([]wurl, error) {
 		subsWildcard = ""
 	}
 
-	res, err := http.Get(
+	res, err := cfg.mk_http_client().Get(
 		fmt.Sprintf("http://index.commoncrawl.org/CC-MAIN-2018-22-index?url=%s%s/*&output=json", subsWildcard, domain),
 	)
 	if err != nil {
@@ -252,7 +270,7 @@ func getVirusTotalURLs(domain string, cfg fconf) ([]wurl, error) {
 		domain,
 	)
 
-	resp, err := http.Get(fetchURL)
+	resp, err := cfg.mk_http_client().Get(fetchURL)
 	if err != nil {
 		return out, err
 	}
@@ -292,7 +310,7 @@ func isSubdomain(rawUrl, domain string) bool {
 func getVersions(u string, cfg fconf) ([]string, error) {
 	out := make([]string, 0)
 
-	resp, err := http.Get(fmt.Sprintf(
+	resp, err := cfg.mk_http_client().Get(fmt.Sprintf(
 		"http://web.archive.org/cdx/search/cdx?url=%s&output=json", u,
 	))
 
