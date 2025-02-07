@@ -33,7 +33,36 @@ func main() {
 	var getVersionsFlag bool
 	flag.BoolVar(&getVersionsFlag, "get-versions", false, "list URLs for crawled versions of input URL(s)")
 
+	var proxy string
+	flag.StringVar(&proxy, "proxy", "", "set proxy: http://addr:port or socks5://addr:port")
+
 	flag.Parse()
+
+	cfg := fconf{
+		noSubs:    noSubs,
+		useProxy:  false,
+		proxyAddr: nil,
+	}
+
+	if len(proxy) > 0 {
+		var e error
+		cfg.proxyAddr, e = url.Parse(proxy)
+		if e == nil {
+			switch cfg.proxyAddr.Scheme {
+			case "http", "https", "socks5":
+				cfg.useProxy = true
+				break
+
+			default:
+				fmt.Fprintf(
+					os.Stderr,
+					"invalid proxy schema was ignored: %s\n",
+					cfg.proxyAddr.Scheme,
+				)
+				break
+			}
+		}
+	}
 
 	if flag.NArg() > 0 {
 		// fetch for a single domain
