@@ -83,8 +83,15 @@ func main() {
 	}
 
 	if flag.NArg() > 0 {
-		// fetch for a single domain
-		domains = []string{flag.Arg(0)}
+		// fetch for domain(s)
+		domains = []string{}
+		for i := 0; i < flag.NArg(); i++ {
+			if flag.Args()[i][0] == '-' {
+				i++
+			} else {
+				domains = append(domains, flag.Args()[i])
+			}
+		}
 	} else {
 
 		// fetch for all domains from stdin
